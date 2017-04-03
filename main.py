@@ -94,17 +94,17 @@ class FeatherSender(threading.Thread):
 
 if __name__ == "__main__":
     fs = FeatherSender()
-    feather_ids = []
+    feather_ips = []
     def message_handler(response):
         log.info("%f [ID %s] [IP %s] [RSSI %d]:\t%s" % (response['t_utc'], response['id'], response['ip'], response['rssi'], "".join(["%s " % f for f in response['data']])))
-        if response['id'] not in feather_ids:
-            feather_ids.append(response['id'])
+        if response['ip'] not in feather_ips:
+            feather_ips.append(response['ip'])
         if response['data'][0] == "fire":
             # log.info("%s fire!" % response['id'])
-            for feather_id in feather_ids:
-                if feather_id == response['id']:
+            for feather_ip in feather_ips:
+                if feather_ip == response['ip']:
                     continue
-                fs.send("bump", (feather_id, 23232))
+                fs.send("bump", (feather_ip, 23232))
             # log.info("")
     fl = FeatherListener(message_handler=message_handler)
     while True:

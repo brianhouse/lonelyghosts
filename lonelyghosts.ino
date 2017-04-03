@@ -40,9 +40,9 @@ void loop() {
   } else {
     digitalWrite(2, HIGH);  // off
   }
-//  if (WiFi.status() != WL_CONNECTED) {    // speed impact?
-//    connectToWifi();   
-//  }
+  if (WiFi.status() != WL_CONNECTED) {
+    connectToWifi();   
+  }
   int packetSize = Udp.parsePacket();  
   if (packetSize) {
     char packetBuffer[packetSize];
