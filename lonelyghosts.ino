@@ -13,10 +13,16 @@ const int port       = 23232; // both send and receive
 
 const float INCREMENT = 0.01;
 const float BUMP = 0.05;
+const float COIT = 0.10;
+const float INSIST = (10 * 1000) / 10; // seconds * millis / loop
 
 float phase = 0.0;
 float capacitor = 0.0;
 int lit = 0;
+int insist = 0;
+
+int buttonValue = 1;
+int prevButtonValue = 1;
 
 const float Pi = 3.141593;
 
@@ -26,20 +32,36 @@ void setup() {
   pinMode(0, OUTPUT);  // set as output to use red LED (LOW is on, HIGH is off)
   pinMode(2, OUTPUT);  // set as output to use blue LED (LOW is on, HIGH is off)
   pinMode(12, OUTPUT); // piezo, using with tone
+  pinMode(13, INPUT_PULLUP);  // detecting manual click, use PULLUP to substitute for external resistor
   connectToWifi();
   Udp.begin(port);
 }
 
 void loop() {
-  if (lit == 10) {
+  if (lit == 15) {
     digitalWrite(2, LOW);  // on
-    tone(12, 4978, 1);
+    tone(12, 5000, 1);
+    lit--;
+  } else if (lit == 2) {
+    tone(12, 4900, 1);    
     lit--;
   } else if (lit > 0) {
     lit--;
   } else {
     digitalWrite(2, HIGH);  // off
   }
+  buttonValue = digitalRead(13);
+  if (buttonValue == 0 && prevButtonValue == 1) {
+    phase = 1.0;  
+    insist = INSIST;
+    Serial.println("--> click");
+  } else {
+    if (insist > 0) {
+      insist--;    
+    }
+  }
+  prevButtonValue = buttonValue;
+  increment();
   if (WiFi.status() != WL_CONNECTED) {
     connectToWifi();   
   }
@@ -47,20 +69,19 @@ void loop() {
   if (packetSize) {
     char packetBuffer[packetSize];
     Udp.read(packetBuffer, packetSize);
-    if (String(packetBuffer) == "bump") {
+    if (String(packetBuffer).substring(0, packetSize) == "bump") {  // dont know why substring is necessary
       bump();
-    }
+    }    
   }
-  increment();
   delay(10);
 }
 
 void increment() {
-  phase = _min(phase + (INCREMENT * 1.0), 1.0);
+  phase = _min(phase + INCREMENT, 1.0);
   capacitor = f(phase);
   if (phase == 1.0) {
     Serial.println("--> fire");
-    lit = 10;
+    lit = 15;
     phase = 0.0;
     Udp.beginPacket(host, port);
     String dataString = idString + "," + String(WiFi.RSSI()) + "," + "fire";
@@ -72,14 +93,17 @@ void increment() {
 }
 
 void bump() {
-  Serial.print("--> bump");
-  if (phase > INCREMENT * 10) {
-    capacitor = _min(capacitor + BUMP, 1.0);
-    phase = f_inv(capacitor);
-  } else {
-    Serial.print(" (ignored)");
+  if (insist != 0) {
+    Serial.println("--> insisting");
+    return;
   }
-  Serial.println();
+  if (phase <= COIT) {    
+    Serial.println("--> resting");
+    return;
+  }
+  Serial.println("--> bump");
+  capacitor = _min(capacitor + BUMP, 1.0);
+  phase = f_inv(capacitor);
 }
 
 float f(float x) {
