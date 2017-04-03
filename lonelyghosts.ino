@@ -21,6 +21,7 @@ float capacitor = 0.0;
 int lit = 0;
 int insist = 0;
 
+bool holding = false;
 int buttonValue = 1;
 int prevButtonValue = 1;
 
@@ -38,30 +39,52 @@ void setup() {
 }
 
 void loop() {
-  if (lit == 15) {
-    digitalWrite(2, LOW);  // on
-    tone(12, 5000, 1);
-    lit--;
-  } else if (lit == 2) {
-    tone(12, 4900, 1);    
-    lit--;
-  } else if (lit > 0) {
-    lit--;
-  } else {
-    digitalWrite(2, HIGH);  // off
+
+  // blink and click
+  if (!holding) {
+    if (lit == 15) {
+      digitalWrite(2, LOW);  // on
+      tone(12, 5000, 1);
+      lit--;
+    } else if (lit == 2) {
+      tone(12, 4900, 1);    
+      lit--;
+    } else if (lit > 0) {
+      lit--;
+    } else {
+      digitalWrite(2, HIGH);  // off
+    }
   }
+  
+  // handle the button
   buttonValue = digitalRead(13);
   if (buttonValue == 0 && prevButtonValue == 1) {
+    Serial.println("--> mousedown");
     phase = 1.0;  
-    insist = INSIST;
-    Serial.println("--> click");
+    insist = INSIST;    
+    holding = true;
+    increment();
+    digitalWrite(2, LOW);  // on
+    tone(12, 5000, 1);    
+  } else if (buttonValue == 1 && prevButtonValue == 0) {
+    Serial.println("--> mouseup");
+    digitalWrite(2, HIGH);  // off    
+    tone(12, 4900, 1);    
+    holding = false;
+    lit = 0;
   } else {
     if (insist > 0) {
       insist--;    
     }
   }
   prevButtonValue = buttonValue;
-  increment();
+
+  // update the algorithm
+  if (!holding) {
+    increment();
+  }
+
+  // handle network
   if (WiFi.status() != WL_CONNECTED) {
     connectToWifi();   
   }
@@ -73,7 +96,9 @@ void loop() {
       bump();
     }    
   }
+  
   delay(10);
+  
 }
 
 void increment() {
