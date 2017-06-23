@@ -2,30 +2,34 @@
 #include <ESP8266WiFi.h>
 #include <WiFiUDP.h>
 
-String idString = "1";
+ADC_MODE(ADC_VCC);
 
+const int id = ESP.getChipId();
+
+// wifi
+WiFiUDP Udp;
 const char* ssid     = "3V8VC";
 const char* password = "7YYGM8V3R65V52FJ";
-const char* host     = "192.168.1.15";
-
-WiFiUDP Udp;
+const char* host     = "192.168.1.9";
 const int port       = 23232; // both send and receive
 
+// constants
 const float INCREMENT = 0.01;
 const float BUMP = 0.05;
 const float COIT = 0.10;
 const float INSIST = (10 * 1000) / 10; // seconds * millis / loop
 
+// state
 float phase = 0.0;
 float capacitor = 0.0;
 int lit = 0;
 int insist = 0;
-
 bool holding = false;
 int buttonValue = 1;
 int prevButtonValue = 1;
 
 const float Pi = 3.141593;
+
 
 void setup() {
   Serial.begin(115200);
@@ -44,7 +48,24 @@ void loop() {
   if (!holding) {
     if (lit == 15) {
       digitalWrite(2, LOW);  // on
-      tone(12, 5000, 1);
+//      tone(12, 5000, 1);
+
+//      tone(12, 5000, 250);
+//      tone(12, 3337, 250);
+//      tone(12, 2500, 250);     
+      lit--;
+    } else if (lit == 14) {              
+      tone(12, 5000, 1);    
+      lit--;
+    } else if (lit == 11) {      
+      tone(12, 4900, 1);  
+      lit--;      
+    } else if (lit == 8) {        
+      tone(12, 5000, 1);  
+      lit--;
+    } else if (lit == 5) {
+      tone(12, 4900, 1);    
+ 
       lit--;
     } else if (lit == 2) {
       tone(12, 4900, 1);    
@@ -109,7 +130,7 @@ void increment() {
     lit = 15;
     phase = 0.0;
     Udp.beginPacket(host, port);
-    String dataString = idString + "," + String(WiFi.RSSI()) + "," + "fire";
+    String dataString = id + "," + String(WiFi.RSSI()) + "," + "fire";
     char dataBuf[dataString.length()+1];
     dataString.toCharArray(dataBuf, dataString.length()+1);
     Udp.write(dataBuf);
@@ -140,37 +161,24 @@ float f_inv(float y) {
 }
 
 void connectToWifi() {
+  int i = 0;
   while (WiFi.status() != WL_CONNECTED) {
-    Serial.println();
-    Serial.println();
-    Serial.print("Attempting to connect to: ");
-    Serial.println(ssid);
-    WiFi.begin(ssid, password);
-    int tries = 0;
-    while (tries < 20 && WiFi.status() != WL_CONNECTED) {
-      digitalWrite(0, HIGH);
-      delay(250);
-      digitalWrite(0, LOW);
-      delay(250);      
-      Serial.print(".");
-      tries++;
-    }
-    if (WiFi.status() != WL_CONNECTED) {
+    if (i % 10 == 0) {
+      Serial.println();
+      Serial.print("--> attempting to connect to: ");
+      Serial.println(ssid);      
       WiFi.disconnect();
-      tries = 0;
-      while (tries < 20) {
-        digitalWrite(0, HIGH);
-        delay(250);
-        digitalWrite(0, LOW);
-        delay(250);
-        tries++;
-      }
+      WiFi.begin(ssid, password);
     }
+    digitalWrite(0, HIGH);
+    delay(250);
+    digitalWrite(0, LOW);
+    delay(250);      
+    Serial.print(".");
+    i++;
   }
   Serial.println();
   Serial.println("--> connected to wifi");
-  digitalWrite(0, HIGH);
-  printWifiStatus();
 }
 
 void printWifiStatus() {
