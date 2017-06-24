@@ -4,14 +4,13 @@ import serial, threading, time, os, socket, queue
 from housepy import config, log, timeutil
 
 
-class FeatherListener(threading.Thread):
+class Listener(threading.Thread):
 
     def __init__(self, port=23232, message_handler=None, blocking=False):
-        super(FeatherListener, self).__init__()
+        super(Listener, self).__init__()
         self.daemon = True
         self.messages = queue.Queue()
-        FeatherHandler(self.messages, message_handler)
-        self.events = {}
+        Handler(self.messages, message_handler)
         try:
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             self.socket.bind(('', port))
@@ -33,19 +32,17 @@ class FeatherListener(threading.Thread):
                 message, address = self.socket.recvfrom(1024)
                 ip, port = address
                 data = message.decode('utf-8').split(',')
-                data = {'id': int(data[0]), 'rssi': int(data[1]), 'ip': ip, 't_utc': timeutil.timestamp(ms=True), 'data': [v for v in data[2:]]}
+                data = {'id': str(data[0]), 'rssi': int(data[1]), 'bat': int(data[2]), 'ip': ip, 'action': data[3], 'neighbors': [token for token in data[4].strip().split(';') if len(token.strip())]}
                 self.messages.put(data)
-                if data['id'] not in self.events:
-                    self.events[data['id']] = queue.Queue()
-                self.events[data['id']].put(1)                    
             except Exception as e:
                 log.error(log.exc(e))
+                log.error(message)
 
 
-class FeatherHandler(threading.Thread):
+class Handler(threading.Thread):
 
     def __init__(self, messages, message_handler):
-        super(FeatherHandler, self).__init__()        
+        super(Handler, self).__init__()        
         if message_handler is None:
             return
         self.messages = messages
@@ -62,10 +59,10 @@ class FeatherHandler(threading.Thread):
                 log.error(log.exc(e))
 
 
-class FeatherSender(threading.Thread):
+class Sender(threading.Thread):
 
     def __init__(self, blocking=False):
-        super(FeatherSender, self).__init__()
+        super(Sender, self).__init__()
         self.daemon = True
         self.messages = queue.Queue()
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -83,7 +80,7 @@ class FeatherSender(threading.Thread):
         while True:
             try:
                 message, address = self.messages.get()
-                log.info("SENDING [%s] to %s:%s" % (message, address[0], address[1]))
+                # log.info("SENDING [%s] to %s:%s" % (message, address[0], address[1]))
                 self.socket.sendto(message.encode('ascii'), address)
             except Exception as e:
                 log.error(log.exc(e))
@@ -93,21 +90,19 @@ class FeatherSender(threading.Thread):
 
 
 if __name__ == "__main__":
-    fs = FeatherSender()
-    feather_ips = []
-    def message_handler(response):
-        log.info("%f [ID %s] [IP %s] [RSSI %d]:\t%s" % (response['t_utc'], response['id'], response['ip'], response['rssi'], "".join(["%s " % f for f in response['data']])))
-        if response['ip'] not in feather_ips:
-            feather_ips.append(response['ip'])
-        if response['data'][0] == "fire":
-            # log.info("%s fire!" % response['id'])
-            for feather_ip in feather_ips:
-                if feather_ip == response['ip']:
-                    continue
-                fs.send("bump", (feather_ip, 23232))
-            # log.info("")
-    fl = FeatherListener(message_handler=message_handler)
+    sender = Sender()
+    nodes = {}
+    def message_handler(node):
+        log.info("[ID %s] [IP %s] [RSSI %d] [BAT %d] [%s] %s" % (node['id'], node['ip'], node['rssi'], node['bat'], node['action'], node['neighbors']))
+        nodes[node['id']] = node['ip']
+        if node['action'] == "fire":
+            try:
+                for node_id in [node.split('-')[0] for node in node['neighbors']]:
+                    if node_id in nodes:
+                        ip = nodes[node_id]
+                        sender.send("bump", (ip, 23232))
+            except Exception as e:
+                log.error(log.exc(e))
+    Listener(message_handler=message_handler)
     while True:
         time.sleep(1)
-        # time.sleep(2)
-        # fs.send("bump", ("192.168.1.6", 23232))
