@@ -9,9 +9,9 @@ const String id = String(ESP.getChipId());
 
 // wifi client
 WiFiUDP Udp;
-const char* ssid     = "3V8VC";
-const char* password = "7YYGM8V3R65V52FJ";
-const char* host     = "192.168.1.9";
+const char* ssid     = "GL-MT300N-5cb";
+const char* password = "goodlife";
+const char* host     = "192.168.8.235";
 const int port       = 23232; // both send and receive
 
 // wifi server
@@ -51,6 +51,7 @@ void setup() {
   digitalWrite(LED, LOW);
   pinMode(12, OUTPUT); // piezo, using with tone
   pinMode(13, INPUT_PULLUP);  // detecting motion, use PULLUP to substitute for external resistor
+//  pinMode(13, INPUT);
 
   // server
   Serial.println("Activating AP...");
@@ -79,7 +80,7 @@ void loop() {
   }
 
   // are we tilting?
-  boolean tl = digitalRead(13);
+  int tl = digitalRead(13);
   if (tl != tilt) {
     scan();
     tilt = tl;
@@ -153,7 +154,7 @@ float f_inv(float y) {
 void connectToWifi() {
   int i = 0;
   while (WiFi.status() != WL_CONNECTED) {
-    if (i % 10 == 0) {
+    if (i % 20 == 0) {
       Serial.print("Connecting");
       WiFi.disconnect();
       WiFi.begin(ssid, password);
@@ -176,9 +177,9 @@ void scan() {
   neighbors = "";
   int n = WiFi.scanNetworks();
   for (int i=0; i<n; i++) {
-    Serial.println(String(WiFi.SSID(i)) + String(WiFi.RSSI(i)));
+    Serial.println(String(WiFi.SSID(i)) + ":" + String(WiFi.RSSI(i)));
     if (WiFi.SSID(i).substring(0, 6) == "flolg_" and WiFi.RSSI(i) >= NEIGHBOR) {
-      neighbors += WiFi.SSID(i).substring(6) + String(WiFi.RSSI(i)) + ";";
+      neighbors += WiFi.SSID(i).substring(6) + ":" + String(WiFi.RSSI(i)) + ";";
     }
   }
   Serial.print("--> neighbors: ");

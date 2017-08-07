@@ -24,7 +24,7 @@ class Listener(threading.Thread):
                     time.sleep(1)
             except (KeyboardInterrupt, SystemExit):
                 self.connection.close()
-                pass      
+                pass
 
     def run(self):
         while True:
@@ -91,16 +91,28 @@ class Sender(threading.Thread):
 
 if __name__ == "__main__":
     sender = Sender()
-    nodes = {}
+    ips = {}
+    neighbors = {}
     def message_handler(node):
-        log.info("[ID %s] [IP %s] [RSSI %d] [BAT %d] [%s] %s" % (node['id'], node['ip'], node['rssi'], node['bat'], node['action'], node['neighbors']))
-        nodes[node['id']] = node['ip']
+        # log.debug("[ID %s] [IP %s] [RSSI %d] [BAT %d] [%s] %s" % (node['id'], node['ip'], node['rssi'], node['bat'], node['action'], node['neighbors']))
+        if node['id'] not in ips:
+            ips[node['id']] = node['ip']
+            neighbors[node['id']] = set()
+        ns = [node.split(':')[0] for node in node['neighbors']]
+        for neighbor_id, neighbor_set in neighbors.items():
+            if neighbor_id == node['id']:
+                neighbor_set.update(ns)
+            if neighbor_id in ns:
+                neighbor_set.add(node['id'])
+            else:
+                neighbor_set.discard(node['id'])
+        log.debug("[ID %s] [RSSI %d] [BAT %d] [-> %s]" % (node['id'], node['rssi'], node['bat'], ",".join(list(neighbors[node['id']]))))
         if node['action'] == "fire":
             try:
-                for node_id in [node.split('-')[0] for node in node['neighbors']]:
-                    if node_id in nodes:
-                        ip = nodes[node_id]
-                        sender.send("bump", (ip, 23232))
+                for neighbor_id in neighbors[node['id']]:
+                    ip = ips[neighbor_id]
+                    sender.send("bump", (ip, 23232))
+                    # log.debug("%s sending to %s" % (node['id'], neighbor_id))
             except Exception as e:
                 log.error(log.exc(e))
     Listener(message_handler=message_handler)
