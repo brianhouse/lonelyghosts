@@ -34,6 +34,7 @@ const int LED = 14; // 14 for external, 0 for red, 2 for blue
 // state
 float phase = 0.0;
 float capacitor = 0.0;
+int start_t = 0;
 int lit = 0;
 boolean tilt = false;
 String neighbors = "";
@@ -51,7 +52,6 @@ void setup() {
   digitalWrite(LED, LOW);
   pinMode(12, OUTPUT); // piezo, using with tone
   pinMode(13, INPUT_PULLUP);  // detecting motion, use PULLUP to substitute for external resistor
-//  pinMode(13, INPUT);
 
   // server
   Serial.println("Activating AP...");
@@ -70,14 +70,11 @@ void setup() {
   tilt = digitalRead(13);
   connectToWifi();
   Udp.begin(port);
+
+  start_t = millis();
 }
 
 void loop() {
-
-  // how's the battery?
-  if (lit == 15) {
-    bat = ESP.getVcc();
-  }
 
   // are we tilting?
   int tl = digitalRead(13);
@@ -86,6 +83,16 @@ void loop() {
     tilt = tl;
   }
 
+  int elapsed = millis() - start_t;
+  if (elapsed < 10) {  
+    return;
+  }
+
+  // how's the battery?
+  if (lit == 15) {
+    bat = ESP.getVcc();
+  }
+  
   // blink and click
   if (lit == 15) {
     digitalWrite(LED, HIGH);  // on
@@ -113,7 +120,7 @@ void loop() {
     }    
   }
   
-  delay(10);
+  start_t = millis();
   
 }
 
