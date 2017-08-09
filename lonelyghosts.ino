@@ -3,8 +3,6 @@
 #include <WiFiUDP.h>
 #include <ESP8266WebServer.h>
 
-ADC_MODE(ADC_VCC); // detect battery life
-
 const String id = String(ESP.getChipId());
 
 // wifi client
@@ -24,12 +22,10 @@ const float BUMP = 0.05;
 const float COIT = 0.10;
 const int NEIGHBOR = -50;
 
-const int PITCHES[] = {2500, 3750, 5000, 6667, 8333, 11250};
-
-const int PITCH = PITCHES[ESP.getChipId() % sizeof(PITCHES - 1)];
+//const int PITCHES[] = {2500, 3750, 5000, 6667, 8333, 11250};
+//const int PITCH = PITCHES[ESP.getChipId() % sizeof(PITCHES - 1)];
+const int PITCH = (ESP.getChipId() % 8000) + 1000;
 const int LED = 14; // 14 for external, 0 for red, 2 for blue
-
-
 
 // state
 float phase = 0.0;
@@ -38,7 +34,7 @@ int start_t = 0;
 int lit = 0;
 boolean tilt = false;
 String neighbors = "";
-int bat = 0;
+float bat = 0.0;
 
 
 
@@ -87,11 +83,6 @@ void loop() {
   if (elapsed < 10) {  
     return;
   }
-
-  // how's the battery?
-  if (lit == 15) {
-    bat = ESP.getVcc();
-  }
   
   // blink and click
   if (lit == 15) {
@@ -132,7 +123,7 @@ void increment() {
     lit = 15;
     phase = 0.0;
     Udp.beginPacket(host, port);
-    String dataString = id + "," + String(WiFi.RSSI()) + "," + String(bat) + "," + "fire" + "," + neighbors;
+    String dataString = id + "," + String(WiFi.RSSI()) + "," + neighbors;
     char dataBuf[dataString.length()+1];
     dataString.toCharArray(dataBuf, dataString.length()+1);
     Udp.write(dataBuf);

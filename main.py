@@ -32,7 +32,7 @@ class Listener(threading.Thread):
                 message, address = self.socket.recvfrom(1024)
                 ip, port = address
                 data = message.decode('utf-8').split(',')
-                data = {'id': str(data[0]), 'rssi': int(data[1]), 'bat': int(data[2]), 'ip': ip, 'action': data[3], 'neighbors': [token for token in data[4].strip().split(';') if len(token.strip())]}
+                data = {'id': str(data[0]), 'rssi': int(data[1]), 'ip': ip, 'neighbors': [token for token in data[2].strip().split(';') if len(token.strip())]}
                 self.messages.put(data)
             except Exception as e:
                 log.error(log.exc(e))
@@ -94,7 +94,7 @@ if __name__ == "__main__":
     ips = {}
     neighbors = {}
     def message_handler(node):
-        # log.debug("[ID %s] [IP %s] [RSSI %d] [BAT %d] [%s] %s" % (node['id'], node['ip'], node['rssi'], node['bat'], node['action'], node['neighbors']))
+        # log.debug("[ID %s] [IP %s] [RSSI %d] [BAT %d] [%s] %s" % (node['id'], node['ip'], node['rssi'], node['neighbors']))
         if node['id'] not in ips:
             ips[node['id']] = node['ip']
             neighbors[node['id']] = set()
@@ -106,15 +106,14 @@ if __name__ == "__main__":
                 neighbor_set.add(node['id'])
             else:
                 neighbor_set.discard(node['id'])
-        log.debug("[ID %s] [RSSI %d] [BAT %d] [-> %s]" % (node['id'], node['rssi'], node['bat'], ",".join(list(neighbors[node['id']]))))
-        if node['action'] == "fire":
-            try:
-                for neighbor_id in neighbors[node['id']]:
-                    ip = ips[neighbor_id]
-                    sender.send("bump", (ip, 23232))
-                    # log.debug("%s sending to %s" % (node['id'], neighbor_id))
-            except Exception as e:
-                log.error(log.exc(e))
+        log.debug("[ID %s] [RSSI %d] [-> %s]" % (node['id'], node['rssi'], ",".join(list(neighbors[node['id']]))))
+        try:
+            for neighbor_id in neighbors[node['id']]:
+                ip = ips[neighbor_id]
+                sender.send("bump", (ip, 23232))
+                # log.debug("%s sending to %s" % (node['id'], neighbor_id))
+        except Exception as e:
+            log.error(log.exc(e))
     Listener(message_handler=message_handler)
     while True:
         time.sleep(1)
