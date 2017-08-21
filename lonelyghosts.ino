@@ -9,7 +9,7 @@ const String id = String(ESP.getChipId());
 WiFiUDP Udp;
 const char* ssid     = "GL-MT300N-5cb";
 const char* password = "goodlife";
-const char* host     = "192.168.8.235";
+const char* host     = "192.168.8.155";
 const int port       = 23232; // both send and receive
 
 // wifi server
@@ -24,7 +24,8 @@ const int NEIGHBOR = -50;
 
 //const int PITCHES[] = {2500, 3750, 5000, 6667, 8333, 11250};
 //const int PITCH = PITCHES[ESP.getChipId() % sizeof(PITCHES - 1)];
-const int PITCH = (ESP.getChipId() % 8000) + 1000;
+const int PITCH = round((pow(((ESP.getChipId() % 8000) / 8000.0), 3.0) * 8000.0) + 1000.0);
+//const int PITCH = (ESP.getChipId() % 8000) + 1000;
 const int LED = 14; // 14 for external, 0 for red, 2 for blue
 
 // state
@@ -39,7 +40,8 @@ float bat = 0.0;
 
 
 void setup() {
-  Serial.begin(115200);
+  
+  Serial.begin(115200);  
   delay(10);
   Serial.println();
   pinMode(0, OUTPUT);  // set as output to use red LED (LOW is on, HIGH is off)
@@ -48,6 +50,12 @@ void setup() {
   digitalWrite(LED, LOW);
   pinMode(12, OUTPUT); // piezo, using with tone
   pinMode(13, INPUT_PULLUP);  // detecting motion, use PULLUP to substitute for external resistor
+
+  Serial.print("ID: ");  
+  Serial.println(id);
+  Serial.print("PITCH: ");  
+  Serial.println(PITCH);
+  Serial.println();
 
   // server
   Serial.println("Activating AP...");
@@ -68,6 +76,7 @@ void setup() {
   Udp.begin(port);
 
   start_t = millis();
+
 }
 
 void loop() {

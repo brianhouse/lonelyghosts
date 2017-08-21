@@ -1,6 +1,8 @@
 Facists, Lovers, and Other Lonely Ghosts
 ========================================
 
+Have you flushed the logs?
+
 
 ### Copyright/License
 
