@@ -18,9 +18,11 @@ ESP8266WebServer server(80);
 // constants
 const float Pi = 3.141593;
 const float INCREMENT = 0.01;
-const float BUMP = 0.05;
+const float BUMP = 0.01; // 0.05;
 const float COIT = 0.10;
-const int NEIGHBOR = -50;
+const int NEIGHBOR = -40;
+const int BUMP_DELAY = (ESP.getChipId() % 10) + 1; // shouldnt be zero
+const int RESIST = 20 * 1000; // 15 seconds
 
 //const int PITCHES[] = {2500, 3750, 5000, 6667, 8333, 11250};
 //const int PITCH = PITCHES[ESP.getChipId() % sizeof(PITCHES - 1)];
@@ -32,10 +34,11 @@ const int LED = 14; // 14 for external, 0 for red, 2 for blue
 float phase = 0.0;
 float capacitor = 0.0;
 int start_t = 0;
+int resist_t = 0;
 int lit = 0;
+int bumping = 0;
 boolean tilt = false;
 String neighbors = "";
-float bat = 0.0;
 
 
 
@@ -107,17 +110,27 @@ void loop() {
   // update the algorithm
   increment();
 
-  // communicate
+  // communicate, unless we're resisting
   if (WiFi.status() != WL_CONNECTED) {
     connectToWifi();   
-  }
+  }    
   int packetSize = Udp.parsePacket();  
   if (packetSize) {
     char packetBuffer[packetSize];
     Udp.read(packetBuffer, packetSize);
     if (String(packetBuffer).substring(0, packetSize) == "bump") {  // dont know why substring is necessary
-      bump();
+      if (millis() > resist_t + RESIST) {   // are we resisting?
+        bumping = BUMP_DELAY;
+      }
     }    
+  }
+  
+  // delayed bumping
+  if (bumping > 0) {
+    if (bumping == 1) {
+      bump();
+    }
+    bumping--;
   }
   
   start_t = millis();
@@ -193,6 +206,7 @@ void scan() {
   Serial.print(neighbors);
   Serial.println();
   digitalWrite(LED, LOW);
+  resist_t = millis();
 }
 
 
