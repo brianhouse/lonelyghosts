@@ -66,7 +66,7 @@ class Sender(threading.Thread):
         self.daemon = True
         self.messages = queue.Queue()
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.socket.settimeout(1)
+        self.socket.settimeout(0.1)
         self.start()
         if blocking:
             try:
@@ -94,19 +94,19 @@ if __name__ == "__main__":
     ips = {}
     neighbors = {}
     def message_handler(node):
-        # log.debug("[ID %s] [IP %s] [RSSI %d] [BAT %d] [%s] %s" % (node['id'], node['ip'], node['rssi'], node['neighbors']))
+        log.debug("[ID %s] [RSSI %d] [-> %s]" % (node['id'], node['rssi'], ",".join(node['neighbors'])))
         if node['id'] not in ips:
             ips[node['id']] = node['ip']
             neighbors[node['id']] = set()
-        ns = [node.split(':')[0] for node in node['neighbors']]
+        ns = set([node.split(':')[0] for node in node['neighbors']])
         for neighbor_id, neighbor_set in neighbors.items():
             if neighbor_id == node['id']:
-                neighbor_set.update(ns)
+                neighbor_set = ns
             if neighbor_id in ns:
                 neighbor_set.add(node['id'])
-            else:
+            if neighbor_id not in ns:
                 neighbor_set.discard(node['id'])
-        log.debug("[ID %s] [RSSI %d] [-> %s]" % (node['id'], node['rssi'], ",".join(list(neighbors[node['id']]))))
+        # log.debug("[ID %s] [RSSI %d] [-> %s]" % (node['id'], node['rssi'], ",".join(list(neighbors[node['id']]))))
         try:
             for neighbor_id in neighbors[node['id']]:
                 ip = ips[neighbor_id]

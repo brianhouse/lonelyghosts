@@ -18,16 +18,13 @@ ESP8266WebServer server(80);
 // constants
 const float Pi = 3.141593;
 const float INCREMENT = 0.01;
-const float BUMP = 0.01; // 0.05;
+const float BUMP = 0.03;
 const float COIT = 0.10;
 const int NEIGHBOR = -40;
-const int BUMP_DELAY = (ESP.getChipId() % 10) + 1; // shouldnt be zero
-const int RESIST = 20 * 1000; // 15 seconds
+const int BUMP_DELAY = (ESP.getChipId() % 5) + 1; // shouldnt be zero. 5=50ms spread (theres a 10ms gap betwen each)
+const int RESIST = 20 * 1000; // 20 seconds
 
-//const int PITCHES[] = {2500, 3750, 5000, 6667, 8333, 11250};
-//const int PITCH = PITCHES[ESP.getChipId() % sizeof(PITCHES - 1)];
-const int PITCH = round((pow(((ESP.getChipId() % 8000) / 8000.0), 3.0) * 8000.0) + 1000.0);
-//const int PITCH = (ESP.getChipId() % 8000) + 1000;
+const int PITCH = round((pow(((ESP.getChipId() % 6000) / 6000.0), 3.0) * 6000.0) + 2000.0);
 const int LED = 14; // 14 for external, 0 for red, 2 for blue
 
 // state
