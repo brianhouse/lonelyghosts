@@ -100,12 +100,21 @@ if __name__ == "__main__":
 
         # add the node if it's new
         if node['id'] not in ips:
+
+            log.info("--> adding %s" % node['id'])
             ips[node['id']] = node['ip']
-            neighbor_id_sets[node['id']] = set()        
+            neighbor_id_sets[node['id']] = set()    
+
+            # set range
+            try:                            
+                sender.send("range%s" % abs(config['neighbor_range']), (node['ip'], 23232))                
+                log.info("--> set range of %s to -%s" % (node['id'], config['neighbor_range']))
+            except Exception as e:
+                log.error(log.exc(e))
 
         if node['action'] == "scan":
             try:
-                log.debug("SCAN [ID %s] [RSSI %d] [%s]" % (node['id'], node['rssi'], node['data']))
+                log.info("SCAN [ID %s] [RSSI %d] [%s]" % (node['id'], node['rssi'], node['data']))
 
                 # set of the neighbors broadcasted for this node
                 current_set = set([token.split(':')[0] for token in node['data'].strip().split(';') if len(token.strip())])
@@ -128,7 +137,7 @@ if __name__ == "__main__":
             try:
                 # bump all neighbors
                 neighbor_ids = neighbor_id_sets[node['id']]
-                log.debug("FIRE [ID %s] [-> %s]" % (node['id'], ",".join(list(neighbor_ids))))
+                log.info("FIRE [ID %s] [-> %s]" % (node['id'], ",".join(list(neighbor_ids))))
                 for neighbor_id in neighbor_ids:
                     ip = ips[neighbor_id]
                     sender.send("bump", (ip, 23232))

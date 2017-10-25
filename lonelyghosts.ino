@@ -20,12 +20,13 @@ const float Pi = 3.141593;
 const float INCREMENT = 0.01;
 const float BUMP = 0.03;
 const float COIT = 0.10;
-const int NEIGHBOR = -40;
 const int BUMP_DELAY = (ESP.getChipId() % 5) + 1; // shouldnt be zero. 5=50ms spread (theres a 10ms gap betwen each)
 const int RESIST = 5 * 1000; // 5 seconds
 
 const int PITCH = round((pow(((ESP.getChipId() % 6000) / 6000.0), 3.0) * 6000.0) + 2000.0);
 const int LED = 14; // 14 for external, 0 for red, 2 for blue
+
+int neighbor_range = -40;
 
 // state
 float phase = 0.0;
@@ -95,8 +96,11 @@ void loop() {
   // blink and click
   if (lit == 15) {
     digitalWrite(LED, HIGH);  // on
-    tone(12, PITCH, 150);  
+    tone(12, PITCH*2, 20);  
     lit--;   
+  } else if (lit == 13) {
+    tone(12, PITCH, 130);  
+    lit--;
   } else if (lit > 0) {
     lit--;
   } else {
@@ -114,11 +118,18 @@ void loop() {
   if (packetSize) {
     char packetBuffer[packetSize];
     Udp.read(packetBuffer, packetSize);
-    if (String(packetBuffer).substring(0, packetSize) == "bump") {  // dont know why substring is necessary
+    String action = String(packetBuffer).substring(0, 4);
+    if (action == "bump") {  // dont know why substring is necessary
       if (millis() > resist_t + RESIST) {   // are we resisting?
         bumping = BUMP_DELAY;
       }
-    }    
+    }
+    else if (action == "rang") {
+      int r = String(packetBuffer).substring(5, 7).toInt();
+      neighbor_range = -1 * r;
+      Serial.print("--> neighbor range is ");
+      Serial.println(neighbor_range);
+    }
   }
   
   // delayed bumping
@@ -198,7 +209,7 @@ void scan() {
   int n = WiFi.scanNetworks();
   for (int i=0; i<n; i++) {
     Serial.println(String(WiFi.SSID(i)) + ":" + String(WiFi.RSSI(i)));
-    if (WiFi.SSID(i).substring(0, 6) == "flolg_" and WiFi.RSSI(i) >= NEIGHBOR) {
+    if (WiFi.SSID(i).substring(0, 6) == "flolg_" and WiFi.RSSI(i) >= neighbor_range) {
       neighbors += WiFi.SSID(i).substring(6) + ":" + String(WiFi.RSSI(i)) + ";";
     }
   }
@@ -214,6 +225,4 @@ void scan() {
   digitalWrite(LED, LOW);
   resist_t = millis();
 }
-
-
 
