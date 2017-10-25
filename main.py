@@ -32,7 +32,8 @@ class Listener(threading.Thread):
                 message, address = self.socket.recvfrom(1024)
                 ip, port = address
                 data = message.decode('utf-8').split(',')
-                data = {'id': str(data[0]), 'rssi': int(data[1]), 'ip': ip, 'neighbors': [token for token in data[2].strip().split(';') if len(token.strip())]}
+                data.append("")
+                data = {'id': str(data[0]), 'rssi': int(data[1]), 'ip': ip, 'action': data[2], 'data': data[3]}
                 self.messages.put(data)
             except Exception as e:
                 log.error(log.exc(e))
@@ -90,30 +91,51 @@ class Sender(threading.Thread):
 
 
 if __name__ == "__main__":
+
     sender = Sender()
-    ips = {}
-    neighbors = {}
+    ips = {}                    # ip addresses indexed by node id
+    neighbor_id_sets = {}       # sets of neighbor ids indexed by node id
+
     def message_handler(node):
-        log.debug("[ID %s] [RSSI %d] [-> %s]" % (node['id'], node['rssi'], ",".join(node['neighbors'])))
+
+        # add the node if it's new
         if node['id'] not in ips:
             ips[node['id']] = node['ip']
-            neighbors[node['id']] = set()
-        ns = set([node.split(':')[0] for node in node['neighbors']])
-        for neighbor_id, neighbor_set in neighbors.items():
-            if neighbor_id == node['id']:
-                neighbor_set = ns
-            if neighbor_id in ns:
-                neighbor_set.add(node['id'])
-            if neighbor_id not in ns:
-                neighbor_set.discard(node['id'])
-        # log.debug("[ID %s] [RSSI %d] [-> %s]" % (node['id'], node['rssi'], ",".join(list(neighbors[node['id']]))))
-        try:
-            for neighbor_id in neighbors[node['id']]:
-                ip = ips[neighbor_id]
-                sender.send("bump", (ip, 23232))
-                # log.debug("%s sending to %s" % (node['id'], neighbor_id))
-        except Exception as e:
-            log.error(log.exc(e))
+            neighbor_id_sets[node['id']] = set()        
+
+        if node['action'] == "scan":
+            try:
+                log.debug("SCAN [ID %s] [RSSI %d] [%s]" % (node['id'], node['rssi'], node['data']))
+
+                # set of the neighbors broadcasted for this node
+                current_set = set([token.split(':')[0] for token in node['data'].strip().split(';') if len(token.strip())])
+
+                # set the neighbors of this node to this list
+                neighbor_id_sets[node['id']] = current_set
+
+                # now go through every set of neighbor_ids -- add this node if they are in the current list, otherwise discard
+                for neighbor_id, neighbor_id_set in neighbor_id_sets.items():
+                    if neighbor_id == node['id']:
+                        continue
+                    elif neighbor_id in current_set:
+                        neighbor_id_set.add(node['id'])
+                    else:
+                        neighbor_id_set.discard(node['id'])                        
+            except Exception as e:
+                log.error(log.exc(e))
+
+        elif node['action'] == "fire":
+            try:
+                # bump all neighbors
+                neighbor_ids = neighbor_id_sets[node['id']]
+                log.debug("FIRE [ID %s] [-> %s]" % (node['id'], ",".join(list(neighbor_ids))))
+                for neighbor_id in neighbor_ids:
+                    ip = ips[neighbor_id]
+                    sender.send("bump", (ip, 23232))
+                    # log.debug("%s sending to %s" % (node['id'], neighbor_id))
+            except Exception as e:
+                log.error(log.exc(e))
+
     Listener(message_handler=message_handler)
     while True:
         time.sleep(1)

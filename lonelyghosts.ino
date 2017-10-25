@@ -22,7 +22,7 @@ const float BUMP = 0.03;
 const float COIT = 0.10;
 const int NEIGHBOR = -40;
 const int BUMP_DELAY = (ESP.getChipId() % 5) + 1; // shouldnt be zero. 5=50ms spread (theres a 10ms gap betwen each)
-const int RESIST = 20 * 1000; // 20 seconds
+const int RESIST = 5 * 1000; // 5 seconds
 
 const int PITCH = round((pow(((ESP.getChipId() % 6000) / 6000.0), 3.0) * 6000.0) + 2000.0);
 const int LED = 14; // 14 for external, 0 for red, 2 for blue
@@ -70,11 +70,10 @@ void setup() {
   }  
   
   // client
-  scan();
-  tilt = digitalRead(13);
   connectToWifi();
   Udp.begin(port);
-
+  scan();
+  tilt = digitalRead(13);
   start_t = millis();
 
 }
@@ -103,14 +102,14 @@ void loop() {
   } else {
     digitalWrite(LED, LOW);  // off
   }
+
+  // make sure we're connected
+  connectToWifi();   
   
   // update the algorithm
   increment();
 
   // communicate, unless we're resisting
-  if (WiFi.status() != WL_CONNECTED) {
-    connectToWifi();   
-  }    
   int packetSize = Udp.parsePacket();  
   if (packetSize) {
     char packetBuffer[packetSize];
@@ -141,8 +140,9 @@ void increment() {
     Serial.println("--> fire");
     lit = 15;
     phase = 0.0;
+    connectToWifi();
     Udp.beginPacket(host, port);
-    String dataString = id + "," + String(WiFi.RSSI()) + "," + neighbors;
+    String dataString = id + "," + String(WiFi.RSSI()) + ",fire";
     char dataBuf[dataString.length()+1];
     dataString.toCharArray(dataBuf, dataString.length()+1);
     Udp.write(dataBuf);
@@ -169,23 +169,26 @@ float f_inv(float y) {
 }
 
 void connectToWifi() {
-  int i = 0;
-  while (WiFi.status() != WL_CONNECTED) {
-    if (i % 20 == 0) {
-      Serial.print("Connecting");
-      WiFi.disconnect();
-      WiFi.begin(ssid, password);
+  if (WiFi.status() != WL_CONNECTED) {
+    int i = 0;
+    while (WiFi.status() != WL_CONNECTED) {
+      if (i % 10 == 0) {
+        Serial.print("Reconnecting to wifi...");
+        WiFi.disconnect();
+        delay(250);
+        WiFi.begin(ssid, password);
+      }
+      digitalWrite(0, HIGH);
+      delay(250);
+      digitalWrite(0, LOW);
+      delay(250);      
+      Serial.print(".");
+      i++;
     }
+    Serial.println();
+    Serial.println("--> connected to wifi");
     digitalWrite(0, HIGH);
-    delay(250);
-    digitalWrite(0, LOW);
-    delay(250);      
-    Serial.print(".");
-    i++;
   }
-  Serial.println();
-  Serial.println("--> connected");
-  digitalWrite(0, HIGH);
 }
 
 void scan() {
@@ -202,6 +205,12 @@ void scan() {
   Serial.print("--> neighbors: ");
   Serial.print(neighbors);
   Serial.println();
+  Udp.beginPacket(host, port);
+  String dataString = id + "," + String(WiFi.RSSI()) + ",scan," + neighbors;
+  char dataBuf[dataString.length()+1];
+  dataString.toCharArray(dataBuf, dataString.length()+1);
+  Udp.write(dataBuf);
+  Udp.endPacket();         
   digitalWrite(LED, LOW);
   resist_t = millis();
 }
