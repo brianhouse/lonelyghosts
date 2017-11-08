@@ -105,14 +105,37 @@ if __name__ == "__main__":
             ips[node['id']] = node['ip']
             neighbor_id_sets[node['id']] = set()    
 
-            # set range
+            # set behaviors
             try:                            
-                sender.send("range%s" % abs(config['neighbor_range']), (node['ip'], 23232))                
+                sender.send("rang%s" % abs(config['neighbor_range']), (node['ip'], 23232))                
                 log.info("--> set range of %s to -%s" % (node['id'], config['neighbor_range']))
-                sender.send("setb%s" % config['bump_amount'], (node['ip'], 23232))                
-                log.info("--> set bump amount of %s to %s" % (node['id'], config['bump_amount']))
+                sender.send("sens%s" % config['bump_amount'], (node['ip'], 23232))                
+                log.info("--> set sensitivity amount of %s to %s" % (node['id'], config['bump_amount']))
             except Exception as e:
                 log.error(log.exc(e))
+
+        if node['action'] == "fire":
+            try:
+                # bump all neighbors
+                neighbor_ids = neighbor_id_sets[node['id']]
+                log.info("FIRE [ID %s] [-> %s]" % (node['id'], ",".join(list(neighbor_ids))))
+                for neighbor_id in neighbor_ids:
+                    ip = ips[neighbor_id]
+                    sender.send("bump", (ip, 23232))
+                    # log.debug("%s sending to %s" % (node['id'], neighbor_id))
+            except Exception as e:
+                log.error(log.exc(e))
+
+        if node['action'] == "frez":
+            try:
+                # disrupt all neighbors
+                neighbor_ids = neighbor_id_sets[node['id']]
+                log.info("DISRUPT [ID %s] [-> %s]" % (node['id'], ",".join(list(neighbor_ids))))
+                for neighbor_id in neighbor_ids:
+                    ip = ips[neighbor_id]
+                    sender.send("disr", (ip, 23232))
+            except Exception as e:
+                log.error(log.exc(e))                            
 
         if node['action'] == "scan":
             try:
@@ -135,17 +158,6 @@ if __name__ == "__main__":
             except Exception as e:
                 log.error(log.exc(e))
 
-        elif node['action'] == "fire":
-            try:
-                # bump all neighbors
-                neighbor_ids = neighbor_id_sets[node['id']]
-                log.info("FIRE [ID %s] [-> %s]" % (node['id'], ",".join(list(neighbor_ids))))
-                for neighbor_id in neighbor_ids:
-                    ip = ips[neighbor_id]
-                    sender.send("bump", (ip, 23232))
-                    # log.debug("%s sending to %s" % (node['id'], neighbor_id))
-            except Exception as e:
-                log.error(log.exc(e))
 
     Listener(message_handler=message_handler)
     while True:

@@ -15,26 +15,25 @@ const int port       = 23232; // both send and receive
 // wifi server
 ESP8266WebServer server(80);
 
-// constants
+// device constants
 const float Pi = 3.141593;
 const int LED = 14; // 14 for external, 0 for red, 2 for blue
 const int PITCH = round((pow(((ESP.getChipId() % 6000) / 6000.0), 3.0) * 6000.0) + 2000.0);
+const int PHASE = ((ESP.getChipId() % 6000) / 6000.0) * 0.8;
 
+// behavior constants
 const float INCREMENT = 0.01;
 const float COIT = 0.10;
-const int BUMP_DELAY = (ESP.getChipId() % 10) + 1; // shouldnt be zero. 10=100ms spread (theres a 10ms gap betwen each)
-const int RESIST = 5 * 1000; // 5 seconds
 
-float BUMP = 0.01;
-int NEIGHBOR_RANGE = -40;
+// settable behavior constants
+float SENSITIVITY = 0.01;
+int RANGE = -40;
 
 // state
 float phase = 0.0;
 float capacitor = 0.0;
 int start_t = 0;
-int resist_t = 0;
 int lit = 0;
-int bumping = 0;
 boolean tilt = false;
 String neighbors = "";
 
@@ -99,7 +98,7 @@ void loop() {
     tone(12, PITCH*2, 20);  
     lit--;   
   } else if (lit == 13) {
-    tone(12, PITCH, 130);  
+    tone(12, PITCH, 80);  
     lit--;
   } else if (lit > 0) {
     lit--;
@@ -113,37 +112,30 @@ void loop() {
   // update the algorithm
   increment();
 
-  // communicate, unless we're resisting
+  // receive
   int packetSize = Udp.parsePacket();  
   if (packetSize) {
     char packetBuffer[packetSize];
     Udp.read(packetBuffer, packetSize);
     String action = String(packetBuffer).substring(0, 4);
-    if (action == "bump") {  // dont know why substring is necessary
-      if (millis() > resist_t + RESIST) {   // are we resisting?
-        bumping = BUMP_DELAY;
-      }
-    }
-    else if (action == "rang") {
-      int r = String(packetBuffer).substring(5, 7).toInt();
-      NEIGHBOR_RANGE = -1 * r;
-      Serial.print("--> neighbor range is ");
-      Serial.println(NEIGHBOR_RANGE);
-    }
-    else if (action == "setb") {
-      float r = String(packetBuffer).substring(4).toFloat();
-      BUMP = r;
-      Serial.print("--> bump is ");
-      Serial.println(BUMP);
-    }
-  }
-  
-  // delayed bumping
-  if (bumping > 0) {
-    if (bumping == 1) {
+    if (action == "bump") {
       bump();
     }
-    bumping--;
+    else if (action == "disr") {
+      phase = PHASE;
+    }
+    else if (action == "rang") {
+      int r = String(packetBuffer).substring(4).toInt();
+      RANGE = -1 * r;
+      Serial.print("--> range is ");
+      Serial.println(RANGE);
+    }
+    else if (action == "sens") {
+      float r = String(packetBuffer).substring(4).toFloat();
+      SENSITIVITY = r;
+      Serial.print("--> sensitivity is ");
+      Serial.println(SENSITIVITY);
+    }
   }
   
   start_t = millis();
@@ -157,13 +149,7 @@ void increment() {
     Serial.println("--> fire");
     lit = 15;
     phase = 0.0;
-    connectToWifi();
-    Udp.beginPacket(host, port);
-    String dataString = id + "," + String(WiFi.RSSI()) + ",fire";
-    char dataBuf[dataString.length()+1];
-    dataString.toCharArray(dataBuf, dataString.length()+1);
-    Udp.write(dataBuf);
-    Udp.endPacket();    
+    send(id + "," + String(WiFi.RSSI()) + ",fire");
   }
 }
 
@@ -173,7 +159,7 @@ void bump() {
     return;
   }
   Serial.println("--> bump");
-  capacitor = _min(capacitor + BUMP, 1.0);
+  capacitor = _min(capacitor + SENSITIVITY, 1.0);
   phase = f_inv(capacitor);
 }
 
@@ -184,6 +170,7 @@ float f(float x) {
 float f_inv(float y) {
   return (2/Pi) * asin(y);
 }
+
 
 void connectToWifi() {
   if (WiFi.status() != WL_CONNECTED) {
@@ -210,25 +197,30 @@ void connectToWifi() {
 
 void scan() {
   digitalWrite(LED, HIGH);
+  send(id + "," + String(WiFi.RSSI()) + ",frez");
   Serial.println("Scanning...");
   neighbors = "";
   int n = WiFi.scanNetworks();
   for (int i=0; i<n; i++) {
     Serial.println(String(WiFi.SSID(i)) + ":" + String(WiFi.RSSI(i)));
-    if (WiFi.SSID(i).substring(0, 6) == "flolg_" and WiFi.RSSI(i) >= NEIGHBOR_RANGE) {
+    if (WiFi.SSID(i).substring(0, 6) == "flolg_" and WiFi.RSSI(i) >= RANGE) {
       neighbors += WiFi.SSID(i).substring(6) + ":" + String(WiFi.RSSI(i)) + ";";
     }
   }
   Serial.print("--> neighbors: ");
   Serial.print(neighbors);
   Serial.println();
+  send(id + "," + String(WiFi.RSSI()) + ",scan," + neighbors);
+  digitalWrite(LED, LOW);
+  phase = PHASE;
+}
+
+
+void send(String dataString) {
   Udp.beginPacket(host, port);
-  String dataString = id + "," + String(WiFi.RSSI()) + ",scan," + neighbors;
-  char dataBuf[dataString.length()+1];
+  char dataBuf[dataString.length() + 1];
   dataString.toCharArray(dataBuf, dataString.length()+1);
   Udp.write(dataBuf);
   Udp.endPacket();         
-  digitalWrite(LED, LOW);
-  resist_t = millis();
 }
 

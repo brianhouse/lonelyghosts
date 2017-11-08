@@ -47,5 +47,32 @@ p: lonelyghosts
 
 ===> 
 
-width becomes a parameter
-shorten the sound 
+- eliminate bump delay
+- shorten the sound 
+- have scan mode disrupt the whole group
+
+this is implemented but not tested
+
+
+
+the other version would be an RGB light where the color syncs.
+how would that work?
+
+- could have a common reference, so that phase position relative to the absolute would give you the color. but that's not really autonomous then. 
+
+- server could assign based on groups
+
+- everytime a bump is received while cycle<0.8, color is randomized -- if fires without interruption, turns white.
+
+- nah. keep it pure.
+
+
+/
+
+does resist need to come back? at some point that went away.
+
+- really see how slow converge can be
+
+--> it really does have to be pitch black
+--> 72 more of these fuckers. could do it for $2k. I just spent 2k on the book. 
+
