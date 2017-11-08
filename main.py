@@ -109,6 +109,8 @@ if __name__ == "__main__":
             try:                            
                 sender.send("range%s" % abs(config['neighbor_range']), (node['ip'], 23232))                
                 log.info("--> set range of %s to -%s" % (node['id'], config['neighbor_range']))
+                sender.send("setb%s" % config['bump_amount'], (node['ip'], 23232))                
+                log.info("--> set bump amount of %s to %s" % (node['id'], config['bump_amount']))
             except Exception as e:
                 log.error(log.exc(e))
 

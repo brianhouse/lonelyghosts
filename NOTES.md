@@ -35,8 +35,17 @@ second batch, need:
 
 
 
+//
+
+host: synchub
+u: pi
+p: lonelyghosts
 
 
 
 
 
+===> 
+
+width becomes a parameter
+shorten the sound 

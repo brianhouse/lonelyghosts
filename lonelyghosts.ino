@@ -17,16 +17,16 @@ ESP8266WebServer server(80);
 
 // constants
 const float Pi = 3.141593;
+const int LED = 14; // 14 for external, 0 for red, 2 for blue
+const int PITCH = round((pow(((ESP.getChipId() % 6000) / 6000.0), 3.0) * 6000.0) + 2000.0);
+
 const float INCREMENT = 0.01;
-const float BUMP = 0.03;
 const float COIT = 0.10;
-const int BUMP_DELAY = (ESP.getChipId() % 5) + 1; // shouldnt be zero. 5=50ms spread (theres a 10ms gap betwen each)
+const int BUMP_DELAY = (ESP.getChipId() % 10) + 1; // shouldnt be zero. 10=100ms spread (theres a 10ms gap betwen each)
 const int RESIST = 5 * 1000; // 5 seconds
 
-const int PITCH = round((pow(((ESP.getChipId() % 6000) / 6000.0), 3.0) * 6000.0) + 2000.0);
-const int LED = 14; // 14 for external, 0 for red, 2 for blue
-
-int neighbor_range = -40;
+float BUMP = 0.01;
+int NEIGHBOR_RANGE = -40;
 
 // state
 float phase = 0.0;
@@ -126,9 +126,15 @@ void loop() {
     }
     else if (action == "rang") {
       int r = String(packetBuffer).substring(5, 7).toInt();
-      neighbor_range = -1 * r;
+      NEIGHBOR_RANGE = -1 * r;
       Serial.print("--> neighbor range is ");
-      Serial.println(neighbor_range);
+      Serial.println(NEIGHBOR_RANGE);
+    }
+    else if (action == "setb") {
+      float r = String(packetBuffer).substring(4).toFloat();
+      BUMP = r;
+      Serial.print("--> bump is ");
+      Serial.println(BUMP);
     }
   }
   
@@ -209,7 +215,7 @@ void scan() {
   int n = WiFi.scanNetworks();
   for (int i=0; i<n; i++) {
     Serial.println(String(WiFi.SSID(i)) + ":" + String(WiFi.RSSI(i)));
-    if (WiFi.SSID(i).substring(0, 6) == "flolg_" and WiFi.RSSI(i) >= neighbor_range) {
+    if (WiFi.SSID(i).substring(0, 6) == "flolg_" and WiFi.RSSI(i) >= NEIGHBOR_RANGE) {
       neighbors += WiFi.SSID(i).substring(6) + ":" + String(WiFi.RSSI(i)) + ";";
     }
   }
