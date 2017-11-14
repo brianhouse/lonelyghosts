@@ -126,7 +126,7 @@ if __name__ == "__main__":
             except Exception as e:
                 log.error(log.exc(e))
 
-        if node['action'] == "frez":
+        if node['action'] == "tilt":
             try:
                 # disrupt all neighbors
                 neighbor_ids = neighbor_id_sets[node['id']]

@@ -19,7 +19,7 @@ ESP8266WebServer server(80);
 const float Pi = 3.141593;
 const int LED = 14; // 14 for external, 0 for red, 2 for blue
 const int PITCH = round((pow(((ESP.getChipId() % 6000) / 6000.0), 3.0) * 6000.0) + 2000.0);
-const int PHASE = ((ESP.getChipId() % 6000) / 6000.0) * 0.8;
+const float PHASE = ((ESP.getChipId() % 6000) / 6000.0) * 0.9;
 
 // behavior constants
 const float INCREMENT = 0.01;
@@ -34,7 +34,6 @@ float phase = 0.0;
 float capacitor = 0.0;
 int start_t = 0;
 int lit = 0;
-boolean tilt = false;
 String neighbors = "";
 
 
@@ -55,6 +54,8 @@ void setup() {
   Serial.println(id);
   Serial.print("PITCH: ");  
   Serial.println(PITCH);
+  Serial.print("PHASE: ");  
+  Serial.println(PHASE);
   Serial.println();
 
   // server
@@ -73,7 +74,6 @@ void setup() {
   connectToWifi();
   Udp.begin(port);
   scan();
-  tilt = digitalRead(13);
   start_t = millis();
 
 }
@@ -81,10 +81,11 @@ void setup() {
 void loop() {
 
   // are we tilting?
-  int tl = digitalRead(13);
-  if (tl != tilt) {
+  boolean tilt = !digitalRead(13);
+  if (tilt) {
+    Serial.println("\nTilting!");
+    send(id + "," + String(WiFi.RSSI()) + ",tilt");
     scan();
-    tilt = tl;
   }
 
   int elapsed = millis() - start_t;
@@ -95,6 +96,7 @@ void loop() {
   // blink and click
   if (lit == 15) {
     digitalWrite(LED, HIGH);  // on
+    noTone(12);
     tone(12, PITCH*2, 20);  
     lit--;   
   } else if (lit == 13) {
@@ -122,18 +124,20 @@ void loop() {
       bump();
     }
     else if (action == "disr") {
-      phase = PHASE;
+//      phase = PHASE;
+      Serial.println("DISR!");
+      scan();
     }
     else if (action == "rang") {
       int r = String(packetBuffer).substring(4).toInt();
       RANGE = -1 * r;
-      Serial.print("--> range is ");
+      Serial.print("Set range to ");
       Serial.println(RANGE);
     }
     else if (action == "sens") {
       float r = String(packetBuffer).substring(4).toFloat();
       SENSITIVITY = r;
-      Serial.print("--> sensitivity is ");
+      Serial.print("Set sensitivity to ");
       Serial.println(SENSITIVITY);
     }
   }
@@ -146,7 +150,7 @@ void increment() {
   phase = _min(phase + INCREMENT, 1.0);
   capacitor = f(phase);
   if (phase == 1.0) {
-    Serial.println("--> fire");
+//    Serial.println("--> fire");
     lit = 15;
     phase = 0.0;
     send(id + "," + String(WiFi.RSSI()) + ",fire");
@@ -155,10 +159,10 @@ void increment() {
 
 void bump() {
   if (phase <= COIT) {    
-    Serial.println("--> resting");
+//    Serial.println("--> resting");
     return;
   }
-  Serial.println("--> bump");
+//  Serial.println("--> bump");
   capacitor = _min(capacitor + SENSITIVITY, 1.0);
   phase = f_inv(capacitor);
 }
@@ -177,6 +181,7 @@ void connectToWifi() {
     int i = 0;
     while (WiFi.status() != WL_CONNECTED) {
       if (i % 10 == 0) {
+        Serial.println();
         Serial.print("Reconnecting to wifi...");
         WiFi.disconnect();
         delay(250);
@@ -197,13 +202,13 @@ void connectToWifi() {
 
 void scan() {
   digitalWrite(LED, HIGH);
-  send(id + "," + String(WiFi.RSSI()) + ",frez");
+  Serial.println();
   Serial.println("Scanning...");
   neighbors = "";
   int n = WiFi.scanNetworks();
   for (int i=0; i<n; i++) {
-    Serial.println(String(WiFi.SSID(i)) + ":" + String(WiFi.RSSI(i)));
     if (WiFi.SSID(i).substring(0, 6) == "flolg_" and WiFi.RSSI(i) >= RANGE) {
+      Serial.println(String(WiFi.SSID(i)) + ":" + String(WiFi.RSSI(i)));
       neighbors += WiFi.SSID(i).substring(6) + ":" + String(WiFi.RSSI(i)) + ";";
     }
   }
@@ -213,6 +218,7 @@ void scan() {
   send(id + "," + String(WiFi.RSSI()) + ",scan," + neighbors);
   digitalWrite(LED, LOW);
   phase = PHASE;
+  capacitor = f(phase);
 }
 
 
