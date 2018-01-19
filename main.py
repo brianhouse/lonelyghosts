@@ -122,8 +122,9 @@ if __name__ == "__main__":
                 neighbor_ids = neighbor_id_sets[node['id']]
                 log.info("FIRE [ID %s] [-> %s]" % (node['id'], ",".join(list(neighbor_ids))))
                 for neighbor_id in neighbor_ids:
-                    ip = ips[neighbor_id]
-                    sender.send("bump", (ip, 23232))
+                    if neighbor_id in ips:
+                        ip = ips[neighbor_id]
+                        sender.send("bump", (ip, 23232))
                     # log.debug("%s sending to %s" % (node['id'], neighbor_id))
             except Exception as e:
                 log.error(log.exc(e))

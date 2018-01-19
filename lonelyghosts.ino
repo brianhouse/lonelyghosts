@@ -9,8 +9,7 @@ const String id = String(ESP.getChipId());
 WiFiUDP Udp;
 const char* ssid     = "GL-MT300N-5cb";
 const char* password = "goodlife";
-const char* host     = "192.168.8.235";
-//const char* host     = "192.168.8.155";
+const char* host     = "192.168.8.155";
 const int port       = 23232; // both send and receive
 
 // wifi server
