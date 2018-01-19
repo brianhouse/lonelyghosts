@@ -1,9 +1,0 @@
-//  // tilt
-//  pinMode(14, INPUT_PULLUP);
-
-/
-
-
-//  // simple tilt sensor
-//  int tilt = digitalRead(14);
-//  String dataString = idString + "," + String(WiFi.RSSI()) + "," + String(ESP.getVcc()) + "," + ms + "," + String(tilt) + ",0,0";  

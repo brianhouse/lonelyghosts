@@ -19,11 +19,12 @@ ESP8266WebServer server(80);
 const float Pi = 3.141593;
 const int LED = 14; // 14 for external, 0 for red, 2 for blue
 const int PITCH = round((pow(((ESP.getChipId() % 6000) / 6000.0), 3.0) * 6000.0) + 2000.0);
-const float PHASE = ((ESP.getChipId() % 6000) / 6000.0) * 0.9;
+const float PHASE = ((ESP.getChipId() % 6000) / 6000.0) * 0.95;
 
 // behavior constants
 const float INCREMENT = 0.01;
 const float COIT = 0.10;
+const int RESIST = 5 * 1000;
 
 // settable behavior constants
 float SENSITIVITY = 0.01;
@@ -33,6 +34,7 @@ int RANGE = -40;
 float phase = 0.0;
 float capacitor = 0.0;
 int start_t = 0;
+int resist_t = 0;
 int lit = 0;
 String neighbors = "";
 
@@ -96,11 +98,10 @@ void loop() {
   // blink and click
   if (lit == 15) {
     digitalWrite(LED, HIGH);  // on
-    noTone(12);
     tone(12, PITCH*2, 20);  
     lit--;   
   } else if (lit == 13) {
-    tone(12, PITCH, 80);  
+    tone(12, PITCH, 130);  
     lit--;
   } else if (lit > 0) {
     lit--;
@@ -121,11 +122,14 @@ void loop() {
     Udp.read(packetBuffer, packetSize);
     String action = String(packetBuffer).substring(0, 4);
     if (action == "bump") {
-      bump();
+      if (millis() > resist_t + RESIST) {   // are we resisting?
+        bump();
+      }
     }
     else if (action == "disr") {
 //      phase = PHASE;
-      Serial.println("DISR!");
+      Serial.print("DISR! ");
+      Serial.println(PHASE);
       scan();
     }
     else if (action == "rang") {
@@ -219,6 +223,7 @@ void scan() {
   digitalWrite(LED, LOW);
   phase = PHASE;
   capacitor = f(phase);
+  resist_t = millis();
 }
 
 
