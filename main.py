@@ -1,178 +1,106 @@
 #!/usr/bin/env python3
 
-import serial, threading, time, os, socket, queue, json
-from housepy import config, log, timeutil
+import queue, time
+import networkx as nx
+from housepy import config, log
+from messenger import Listener, Handler, Sender
+from graph import MAX_NEIGHBORS, find_neighborhoods
+
+sender = Sender()
+ips = {}                    # ip addresses indexed by node id
+graph = nx.Graph()
+node_neighborhoods = {}
+neighborhood_nodes = {}
+check_ins = queue.Queue()
 
 
-class Listener(threading.Thread):
+def message_handler(node):
 
-    def __init__(self, port=23232, message_handler=None, blocking=False):
-        super(Listener, self).__init__()
-        self.daemon = True
-        self.messages = queue.Queue()
-        Handler(self.messages, message_handler)
-        try:
-            self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            self.socket.bind(('', port))
+    global node_neighborhoods, neighborhood_nodes
+
+
+    # add the node if it's new
+    if node['id'] not in ips:
+
+        log.info("--> adding %s" % node['id'])
+        ips[node['id']] = node['ip']
+
+        # set behaviors
+        try:                            
+            sender.send("rang%s" % abs(config['neighbor_range']), (node['ip'], 23232))                
+            log.info("--> set range of %s to -%s" % (node['id'], config['neighbor_range']))
+            sender.send("sens%s" % config['bump_amount'], (node['ip'], 23232))                
+            log.info("--> set sensitivity amount of %s to %s" % (node['id'], config['bump_amount']))
         except Exception as e:
             log.error(log.exc(e))
-            return
-        self.start()
-        if blocking:
-            try:
-                while True:
-                    time.sleep(1)
-            except (KeyboardInterrupt, SystemExit):
-                self.connection.close()
-                pass
-
-    def run(self):
-        while True:
-            try:
-                message, address = self.socket.recvfrom(1024)
-                ip, port = address
-                data = message.decode('utf-8').split(',')
-                data.append("")
-                data = {'id': str(data[0]), 'rssi': int(data[1]), 'ip': ip, 'action': data[2], 'data': data[3]}
-                self.messages.put(data)
-            except Exception as e:
-                log.error(log.exc(e))
-                log.error(message)
 
 
-class Handler(threading.Thread):
-
-    def __init__(self, messages, message_handler):
-        super(Handler, self).__init__()        
-        if message_handler is None:
-            return
-        self.messages = messages
-        self.message_handler = message_handler
-        self.daemon = True
-        self.start()
-
-    def run(self):
-        while True:
-            try:
-                message = self.messages.get()
-                self.message_handler(message)
-            except Exception as e:
-                log.error(log.exc(e))
-
-
-class Sender(threading.Thread):
-
-    def __init__(self, blocking=False):
-        super(Sender, self).__init__()
-        self.daemon = True
-        self.messages = queue.Queue()
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.socket.settimeout(0.1)
-        self.start()
-        if blocking:
-            try:
-                while True:
-                    time.sleep(1)
-            except (KeyboardInterrupt, SystemExit):
-                self.connection.close()
-                pass
-
-    def run(self):
-        while True:
-            try:
-                message, address = self.messages.get()
-                # log.info("SENDING [%s] to %s:%s" % (message, address[0], address[1]))
-                self.socket.sendto(message.encode('ascii'), address)
-            except Exception as e:
-                log.error(log.exc(e))
-
-    def send(self, message, address):
-        self.messages.put((message, address))
-
-
-if __name__ == "__main__":
-
-    sender = Sender()
-    ips = {}                    # ip addresses indexed by node id
-    neighbor_id_sets = {}       # sets of neighbor ids indexed by node id
-    check_ins = queue.Queue()
-
-    def message_handler(node):
-
-        # add the node if it's new
-        if node['id'] not in ips:
-
-            log.info("--> adding %s" % node['id'])
-            ips[node['id']] = node['ip']
-            neighbor_id_sets[node['id']] = set()    
-
-            # set behaviors
-            try:                            
-                sender.send("rang%s" % abs(config['neighbor_range']), (node['ip'], 23232))                
-                log.info("--> set range of %s to -%s" % (node['id'], config['neighbor_range']))
-                sender.send("sens%s" % config['bump_amount'], (node['ip'], 23232))                
-                log.info("--> set sensitivity amount of %s to %s" % (node['id'], config['bump_amount']))
-            except Exception as e:
-                log.error(log.exc(e))
-
-        if node['action'] == "fire":
-            try:
-                check_ins.put(node['id'])
-                # bump all neighbors
-                neighbor_ids = neighbor_id_sets[node['id']]
-                log.info("FIRE [ID %s] [-> %s]" % (node['id'], ",".join(list(neighbor_ids))))
-                for neighbor_id in neighbor_ids:
-                    if neighbor_id in ips:
-                        ip = ips[neighbor_id]
-                        sender.send("bump", (ip, 23232))
-                    # log.debug("%s sending to %s" % (node['id'], neighbor_id))
-            except Exception as e:
-                log.error(log.exc(e))
-
-        if node['action'] == "tilt":
-            try:
-                # disrupt all neighbors
-                neighbor_ids = neighbor_id_sets[node['id']]
-                log.info("DISRUPT [ID %s] [-> %s]" % (node['id'], ",".join(list(neighbor_ids))))
-                for neighbor_id in neighbor_ids:
+    # bump all neighbors of a node that has fired
+    if node['action'] == "fire":
+        try:
+            check_ins.put(node['id'])
+            neighbor_ids = neighborhood_nodes[node_neighborhoods[node['id']]]
+            log.info("FIRE [ID %s] [-> %s]" % (node['id'], ",".join(list(neighbor_ids))))
+            for neighbor_id in neighbor_ids:
+                if neighbor_id == node['id']:
+                    continue
+                if neighbor_id in ips:
                     ip = ips[neighbor_id]
-                    sender.send("disr", (ip, 23232))
-            except Exception as e:
-                log.error(log.exc(e))                            
-
-        if node['action'] == "scan":
-            try:
-                log.info("SCAN [ID %s] [RSSI %d] [%s]" % (node['id'], node['rssi'], node['data']))
-
-                # set of the neighbors broadcasted for this node
-                current_set = set([token.split(':')[0] for token in node['data'].strip().split(';') if len(token.strip())])
-
-                # limit number of neighbors to 10
-                current_set = current_set[:10]
-
-                # set the neighbors of this node to this list
-                neighbor_id_sets[node['id']] = current_set
-
-                # now go through every set of neighbor_ids -- add this node if they are in the current list, otherwise discard
-                for neighbor_id, neighbor_id_set in neighbor_id_sets.items():
-                    if neighbor_id == node['id']:
-                        continue
-                    elif neighbor_id in current_set:
-                        neighbor_id_set.add(node['id'])
-                    else:
-                        neighbor_id_set.discard(node['id'])                        
-            except Exception as e:
-                log.error(log.exc(e))
+                    sender.send("bump", (ip, 23232))
+                # log.debug("%s sending to %s" % (node['id'], neighbor_id))
+        except Exception as e:
+            log.error(log.exc(e))
 
 
-    Listener(message_handler=message_handler)
+    # disrupt all neighbors
+    if node['action'] == "tilt":
+        try:
+            # disrupt all neighbors
+            neighbor_ids = neighborhood_nodes[node_neighborhoods[node['id']]]
+            log.info("DISRUPT [ID %s] [-> %s]" % (node['id'], ",".join(list(neighbor_ids))))
+            for neighbor_id in neighbor_ids:
+                if neighbor_id == node['id']:
+                    continue     
+                if neighbor_id in ips:                               
+                    ip = ips[neighbor_id]
+                sender.send("disr", (ip, 23232))
+        except Exception as e:
+            log.error(log.exc(e))                            
+
+
+    # receive network graph information
+    if node['action'] == "scan":
+        try:
+            log.info("SCAN [ID %s] [RSSI %d] [%s]" % (node['id'], node['rssi'], node['data']))
+
+            # remove this node from the graph
+            if node['id'] in graph:
+                graph.remove_node(node['id'])
+
+            # get the closest MAX_NEIGHBORS neighbors broadcasted for this node
+            neighbors = [token for token in node['data'].strip().split(';') if len(token.strip())]
+            neighbors.sort(key=lambda x: abs(int(x.split(":")[1])))
+            neighbors = neighbors[:MAX_NEIGHBORS]
+
+            # add the adjacency list to the graph, and recompute neighborhoods
+            adjlist = list(zip(node['id'] * len(neighbors), neighbors))
+            graph.add_edges_from(adjlist)
+            node_neighborhoods, neighborhood_nodes = find_neighborhoods(graph)
+
+        except Exception as e:
+            log.error(log.exc(e))
+
+
+Listener(message_handler=message_handler)
+
+
+while True:
+    time.sleep(1.2)
+    present = []
     while True:
-        time.sleep(1.2)
-        present = []
-        while True:
-            try:
-                node_id = check_ins.get_nowait()
-                present.append(node_id)
-            except queue.Empty:
-                break            
-        log.info("PRESENT: %s" % len(set(present)))
+        try:
+            node_id = check_ins.get_nowait()
+            present.append(node_id)
+        except queue.Empty:
+            break            
+    log.info("PRESENT: %s" % len(set(present)))
