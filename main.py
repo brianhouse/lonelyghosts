@@ -144,6 +144,9 @@ if __name__ == "__main__":
                 # set of the neighbors broadcasted for this node
                 current_set = set([token.split(':')[0] for token in node['data'].strip().split(';') if len(token.strip())])
 
+                # limit number of neighbors to 10
+                current_set = current_set[:10]
+
                 # set the neighbors of this node to this list
                 neighbor_id_sets[node['id']] = current_set
 

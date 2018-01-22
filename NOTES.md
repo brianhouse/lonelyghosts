@@ -8,59 +8,17 @@ started charging at 9:35
 still charging at 12:15
 was charged at 19:20
 
-
-
 //
 
-have you flushed the logs?
+remember, the router is set to assign a constant ip to synchub -- both if synchub is connected through wifi or via ethernet
 
-
-
-lock IP of raspberry pi?
-
-
-
-//
-
-first batch, need:
-2 switches
-2 extensions
-2 batteries
-
-second batch, need:
-11 feathers
-12 switches
-12 extensions
-12 batteries
-
-
+ok, no. setting that the same is causing the router to go away.
 
 //
 
 host: synchub
 u: pi
 p: lonelyghosts
-
-
-
-
-
-===> 
-
-- eliminate bump delay
-- shorten the sound 
-- have scan mode disrupt the whole group
-
-this is implemented but not tested
-
-
-
-
-/
-
-does resist need to come back? at some point that went away.
-
-- really see how slow converge can be
 
 
 //
@@ -82,3 +40,31 @@ extending it probably works. and I have the hardware.
 need an interface to show how many devices have pinged within the last 1.5 seconds
 
 
+//
+
+
+going to put the synchub wifi to studio wifi
+
+and connect the router via ethernet:
+
+unit -> broadcast -> router -> broadcast -> hub -> broadcast -> router -> broadcast -> unit
+vs
+unit -> broadcast -> router -> hub -> router -> broadcast -> unit
+
+eliminates two broadcasts, so could have an effect.
+
+
+//
+
+exhibition checklist
+
+make a SD clone
+
+
+
+//
+
+
+ok, 53 are believablely connected to the GL now. but syncing is a little challenging.
+
+I think I need to restrict the number of neighbors.
