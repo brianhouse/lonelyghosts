@@ -74,8 +74,104 @@ ok, 53 are believablely connected to the GL now. but syncing is a little challen
 I think I need to restrict the number of neighbors.
 
 
+ok, this feels like they are syncing better. limited neighbors.
+
+ok, 63 are now convincing.
+
+now we're at 72. but it feels like it's falling apart.
+
+listing 57 now.
+
+but see, I'm not totally convinced everyone is registering.
+ok, just counted, they basically are.
+
+
+put bump amount / sensitivity at 0.02
+maybe made a difference?
+
+
+it does seem to be true that the ones that stray are not as closely coupled
+
 //
 
-exhibition checklist
+so how much of this has to do with the pi itself? seems to have a bigger effect than I thought.
 
-make a SD clone
+so I should try this from Granu.
+
+synchub is using like 10% cpu and 1.1 memory. so it's not really that, though who is to say with network performance stuff.
+
+
+
+ok, I kind of got the impression that it would hit a tipping point of sync, and then go all batty again.
+so if there are max 10 neighbors, maybe should be no more than 0.01 each ... no wait that makes no sense
+
+wait, but wow. it's a lot more stable with a lower bump (0.008)
+
+this is 52 and right good.
+
+62 worked also.
+
+72 is rough.
+
+putting bump at (0.004)
+
+hmm. 
+
+
+I wonder if what we're seeing now is this graph where two sides of the graph could be pulling in opposite ways.
+
+I mean, thankfully, the network seems to hold for 72 when the neighbor size is limited.
+
+putting it back to 0.008
+maybe worse actually.
+back to 0.005
+
+and then I'm going to neighbor it at 15.
+
+
+
+//
+
+so you could actually separate the network. make sure there are no crossovers, with a max neighborhood size of 10, or whatever.
+
+use a nearest neighbor kind of situation.
+
+this is assuming the cross is the issue.
+
+
+//
+
+it seems like they were propagating based on proximity. which is really nice. is it true?
+the neighbors are stored as sets, which are not ordered. but, I mean, they _are_ ordered somehow.
+wait, but it was literally spreading right to left.
+well, maybe it's those intermediate nodes.
+
+it was beautiful though. was that with 50 some nodes?
+
+
+/
+
+have 10 buckets.
+new scan comes in ... assign it to the bucket with the most neighbors. 
+if none, the bucket with the fewest members.
+
+can members get bumped? youd kind of want them to.
+
+so you have the neighbors set for each node, and then a score based on how many in that set are in the bucket.
+
+scan comes in, remove that guy. recalculate all bucket scores for everybody, and the bucket score for the scanning guy, for each bucket.
+
+
+or basically, recalculate everything for each scan that comes in.
+
+
+
+
+
+
+
+
+
+
+
+
