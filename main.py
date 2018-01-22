@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import serial, threading, time, os, socket, queue
+import serial, threading, time, os, socket, queue, json
 from housepy import config, log, timeutil
 
 
@@ -95,6 +95,7 @@ if __name__ == "__main__":
     sender = Sender()
     ips = {}                    # ip addresses indexed by node id
     neighbor_id_sets = {}       # sets of neighbor ids indexed by node id
+    check_ins = queue.Queue()
 
     def message_handler(node):
 
@@ -116,12 +117,14 @@ if __name__ == "__main__":
 
         if node['action'] == "fire":
             try:
+                check_ins.put(node['id'])
                 # bump all neighbors
                 neighbor_ids = neighbor_id_sets[node['id']]
                 log.info("FIRE [ID %s] [-> %s]" % (node['id'], ",".join(list(neighbor_ids))))
                 for neighbor_id in neighbor_ids:
-                    ip = ips[neighbor_id]
-                    sender.send("bump", (ip, 23232))
+                    if neighbor_id in ips:
+                        ip = ips[neighbor_id]
+                        sender.send("bump", (ip, 23232))
                     # log.debug("%s sending to %s" % (node['id'], neighbor_id))
             except Exception as e:
                 log.error(log.exc(e))
@@ -164,4 +167,12 @@ if __name__ == "__main__":
 
     Listener(message_handler=message_handler)
     while True:
-        time.sleep(1)
+        time.sleep(1.2)
+        present = []
+        while True:
+            try:
+                node_id = check_ins.get_nowait()
+                present.append(node_id)
+            except queue.Empty:
+                break            
+        log.info("PRESENT: %s" % len(set(present)))
