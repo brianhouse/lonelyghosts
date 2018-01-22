@@ -54,6 +54,8 @@ if __name__ == "__main__":
     G = nx.Graph()
     G.add_edges_from(adjlist)
 
+    # G = nx.read_gpickle("graph_state.pkl")
+
     start = timer()
     node_neighborhoods, neighborhood_nodes = find_neighborhoods(G)
     print(node_neighborhoods)

@@ -104,3 +104,5 @@ while True:
         except queue.Empty:
             break            
     log.info("PRESENT: %s" % len(set(present)))
+
+    # nx.write_gpickle(graph, "graph_state.pkl")
