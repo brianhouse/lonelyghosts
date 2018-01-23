@@ -48,13 +48,13 @@ if __name__ == "__main__":
 
     import matplotlib.pyplot as plt
 
-    MAX_NEIGHBORS = 3
+    # MAX_NEIGHBORS = 3
 
-    adjlist = ('11211', '11233'), ('11211', '11283'), ('11283', '12909'), ('12909', '11211'), ('12977', '12909'), ('22222', '22222'), ('80220', '90210'), ('80220', '66666'), ('66666', '90210'), ('90210', '434343'), ('434343', '67879')
-    G = nx.Graph()
-    G.add_edges_from(adjlist)
+    # adjlist = ('11211', '11233'), ('11211', '11283'), ('11283', '12909'), ('12909', '11211'), ('12977', '12909'), ('22222', '22222'), ('80220', '90210'), ('80220', '66666'), ('66666', '90210'), ('90210', '434343'), ('434343', '67879')
+    # G = nx.Graph()
+    # G.add_edges_from(adjlist)
 
-    # G = nx.read_gpickle("graph_state.pkl")
+    G = nx.read_gpickle("graph_state.pkl")
 
     start = timer()
     node_neighborhoods, neighborhood_nodes = find_neighborhoods(G)

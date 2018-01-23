@@ -87,3 +87,17 @@ so you could actually separate the network into subgraphs. make sure there are n
 but what the hell was that propagating effect, that was really nice. how would the beep in order of spatial proximity? maybe it is via joiner nodes.
 
 regardless, tight coupling in distinct groups is the way to go I think if we're going to get this to 96.
+
+
+//
+
+50 is solid.
+
+so at 70, theyre all connected, and it's totally synctastic. but the checkin number is slipping.
+
+also, weirdly, they are ALL syncronized. and I'm wondering if it's the delay caused by printing the network.
+
+interesting. disturbing them all actually kicked a bunch off the network. not great. too much traffic?
+
+eliminating some log output and saving network files seemed to help. eliminating disr for max stability.
+
