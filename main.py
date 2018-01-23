@@ -18,19 +18,20 @@ def message_handler(node):
 
     global node_neighborhoods, neighborhood_nodes
 
+    node_id = node['id']
 
     # add the node if it's new
-    if node['id'] not in ips:
+    if node_id not in ips:
 
-        log.info("--> adding %s" % node['id'])
-        ips[node['id']] = node['ip']
+        log.info("--> adding %s" % node_id)
+        ips[node_id] = node['ip']
 
         # set behaviors
         try:                            
             sender.send("rang%s" % abs(config['neighbor_range']), (node['ip'], 23232))                
-            log.info("--> set range of %s to -%s" % (node['id'], config['neighbor_range']))
+            log.info("--> set range of %s to -%s" % (node_id, config['neighbor_range']))
             sender.send("sens%s" % config['bump_amount'], (node['ip'], 23232))                
-            log.info("--> set sensitivity amount of %s to %s" % (node['id'], config['bump_amount']))
+            log.info("--> set sensitivity amount of %s to %s" % (node_id, config['bump_amount']))
         except Exception as e:
             log.error(log.exc(e))
 
@@ -38,16 +39,20 @@ def message_handler(node):
     # bump all neighbors of a node that has fired
     if node['action'] == "fire":
         try:
-            check_ins.put(node['id'])
-            neighbor_ids = neighborhood_nodes[node_neighborhoods[node['id']]]
-            log.info("FIRE [ID %s] [-> %s]" % (node['id'], ",".join(list(neighbor_ids))))
-            for neighbor_id in neighbor_ids:
-                if neighbor_id == node['id']:
-                    continue
-                if neighbor_id in ips:
-                    ip = ips[neighbor_id]
-                    sender.send("bump", (ip, 23232))
-                # log.debug("%s sending to %s" % (node['id'], neighbor_id))
+            check_ins.put(node_id)
+            try:
+                neighbor_ids = neighborhood_nodes[node_neighborhoods[node_id]]
+            except KeyError:
+                pass
+            else:
+                log.info("FIRE [ID %s] [-> %s]" % (node_id, ",".join(list(neighbor_ids))))
+                for neighbor_id in neighbor_ids:
+                    if neighbor_id == node_id:
+                        continue
+                    if neighbor_id in ips:
+                        ip = ips[neighbor_id]
+                        sender.send("bump", (ip, 23232))
+                    # log.debug("%s sending to %s" % (node_id, neighbor_id))
         except Exception as e:
             log.error(log.exc(e))
 
@@ -55,15 +60,18 @@ def message_handler(node):
     # disrupt all neighbors
     if node['action'] == "tilt":
         try:
-            # disrupt all neighbors
-            neighbor_ids = neighborhood_nodes[node_neighborhoods[node['id']]]
-            log.info("DISRUPT [ID %s] [-> %s]" % (node['id'], ",".join(list(neighbor_ids))))
-            for neighbor_id in neighbor_ids:
-                if neighbor_id == node['id']:
-                    continue     
-                if neighbor_id in ips:                               
-                    ip = ips[neighbor_id]
-                sender.send("disr", (ip, 23232))
+            try:
+                neighbor_ids = neighborhood_nodes[node_neighborhoods[node_id]]
+            except KeyError:
+                pass
+            else:
+                log.info("DISRUPT [ID %s] [-> %s]" % (node_id, ",".join(list(neighbor_ids))))
+                for neighbor_id in neighbor_ids:
+                    if neighbor_id == node_id:
+                        continue     
+                    if neighbor_id in ips:                               
+                        ip = ips[neighbor_id]
+                    sender.send("disr", (ip, 23232))
         except Exception as e:
             log.error(log.exc(e))                            
 
@@ -74,8 +82,8 @@ def message_handler(node):
             log.info("SCAN [ID %s] [RSSI %d] [%s]" % (node['id'], node['rssi'], node['data']))
 
             # remove this node from the graph
-            if node['id'] in graph:
-                graph.remove_node(node['id'])
+            if node_id in graph:
+                graph.remove_node(node_id)
 
             # get the closest MAX_NEIGHBORS neighbors broadcasted for this node
             neighbors = [token for token in node['data'].strip().split(';') if len(token.strip())]
@@ -83,7 +91,7 @@ def message_handler(node):
             neighbors = neighbors[:MAX_NEIGHBORS]
 
             # add the adjacency list to the graph, and recompute neighborhoods
-            adjlist = list(zip(node['id'] * len(neighbors), neighbors))
+            adjlist = list(zip(node_id * len(neighbors), neighbors))
             graph.add_edges_from(adjlist)
             node_neighborhoods, neighborhood_nodes = find_neighborhoods(graph)
 
