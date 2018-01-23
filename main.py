@@ -45,7 +45,7 @@ def message_handler(node):
             except KeyError:
                 pass
             else:
-                log.info("FIRE [ID %s] [-> %s]" % (node_id, ",".join(list(neighbor_ids))))
+                #log.info("FIRE [ID %s] [-> %s]" % (node_id, ",".join(list(neighbor_ids))))
                 for neighbor_id in neighbor_ids:
                     if neighbor_id == node_id:
                         continue
@@ -58,22 +58,22 @@ def message_handler(node):
 
 
     # disrupt all neighbors
-    if node['action'] == "tilt":
-        try:
-            try:
-                neighbor_ids = neighborhood_nodes[node_neighborhoods[node_id]]
-            except KeyError:
-                pass
-            else:
-                log.info("DISRUPT [ID %s] [-> %s]" % (node_id, ",".join(list(neighbor_ids))))
-                for neighbor_id in neighbor_ids:
-                    if neighbor_id == node_id:
-                        continue     
-                    if neighbor_id in ips:                               
-                        ip = ips[neighbor_id]
-                    sender.send("disr", (ip, 23232))
-        except Exception as e:
-            log.error(log.exc(e))                            
+    #if node['action'] == "tilt":
+    #    try:
+    #        try:
+    #            neighbor_ids = neighborhood_nodes[node_neighborhoods[node_id]]
+    #        except KeyError:
+    #            pass
+    #        else:
+    #            log.info("DISRUPT [ID %s] [-> %s]" % (node_id, ",".join(list(neighbor_ids))))
+    #            for neighbor_id in neighbor_ids:
+    #                if neighbor_id == node_id:
+    #                    continue     
+    #                if neighbor_id in ips:                               
+    #                    ip = ips[neighbor_id]
+    #                sender.send("disr", (ip, 23232))
+    #    except Exception as e:
+    #        log.error(log.exc(e))                            
 
 
     # receive network graph information
@@ -89,11 +89,16 @@ def message_handler(node):
             neighbors = [token for token in node['data'].strip().split(';') if len(token.strip())]
             neighbors.sort(key=lambda x: abs(int(x.split(":")[1])))
             neighbors = neighbors[:MAX_NEIGHBORS]
+            neighbors = [neighbor.split(":")[0] for neighbor in neighbors]
 
             # add the adjacency list to the graph, and recompute neighborhoods
-            adjlist = list(zip(node_id * len(neighbors), neighbors))
+            adjlist = list(zip([node_id] * len(neighbors), neighbors))
             graph.add_edges_from(adjlist)
             node_neighborhoods, neighborhood_nodes = find_neighborhoods(graph)
+
+            #print("NODE_NEIGHBORHOODS", node_neighborhoods)
+            #print("NEIGHBORHOOD_NODES", neighborhood_nodes)
+            #nx.write_gpickle(graph, "graph_state.pkl")
 
         except Exception as e:
             log.error(log.exc(e))
@@ -112,5 +117,3 @@ while True:
         except queue.Empty:
             break            
     log.info("PRESENT: %s" % len(set(present)))
-
-    # nx.write_gpickle(graph, "graph_state.pkl")
