@@ -101,3 +101,36 @@ interesting. disturbing them all actually kicked a bunch off the network. not gr
 
 eliminating some log output and saving network files seemed to help. eliminating disr for max stability.
 
+
+//
+
+turning them all on simultaneously makes it take longer for them to all connect. 50 can do it. more, no.
+
+checkins waver a bit. I think we're just dropping pings on the network.
+
+the waves are totally still happening. so is the mass sync. insane. it's almost as if entrainment were a physical property of the universe.
+
+80 is working, basically the same situation as 70.
+
+90 is totally sync'ed. seeing all over 80s in the checkins. so not terrible.
+
+95... not totally cohering. checkins jumping all over, down to 50.
+limit is just the router.
+
+reducing neighbors to 8. nada. back to 80 nodes? they sync.
+
+interesting ... how long are the messaging timeouts? it's set to 200ms, but that's not how it's behaving.
+should I timeout remove the node? no. it could come back. 
+
+no sign of the bumping off the network thing.
+
+
+should really have made a tool to ping to nodes or turn them off by id.
+
+
+so, in conclusion. use ~80, unless the new router is able to handle more. otherwise, I think it is what it is.
+
+gotchas? lots of people interacting, not taking time to sync, etc. 
+
+have a docent that limits the number of people?
+
