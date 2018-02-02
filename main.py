@@ -79,7 +79,8 @@ def message_handler(node):
     # receive network graph information
     if node['action'] == "scan":
         try:
-            log.info("SCAN [ID %s] [RSSI %d] [%s]" % (node['id'], node['rssi'], node['data']))
+            #log.info("SCAN [ID %s] [RSSI %d] [%s]" % (node['id'], node['rssi'], node['data']))
+            log.info("SCAN [ID %s] [RSSI %d]" % (node['id'], node['rssi']))
 
             # remove this node from the graph
             if node_id in graph:
@@ -89,6 +90,7 @@ def message_handler(node):
             neighbors = [token for token in node['data'].strip().split(';') if len(token.strip())]
             neighbors.sort(key=lambda x: abs(int(x.split(":")[1])))
             neighbors = neighbors[:MAX_NEIGHBORS]
+            log.info(neighbors)
             neighbors = [neighbor.split(":")[0] for neighbor in neighbors]
 
             # add the adjacency list to the graph, and recompute neighborhoods
