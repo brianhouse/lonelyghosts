@@ -100,7 +100,7 @@ def message_handler(node):
 
             #print("NODE_NEIGHBORHOODS", node_neighborhoods)
             #print("NEIGHBORHOOD_NODES", neighborhood_nodes)
-            #nx.write_gpickle(graph, "graph_state.pkl")
+            nx.write_gpickle(graph, "graph_state.pkl")
 
         except Exception as e:
             log.error(log.exc(e))

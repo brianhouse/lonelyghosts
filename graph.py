@@ -19,7 +19,7 @@ def find_neighborhoods(G):
     remove_indexes = []
     for s in range(len(subgraphs)):
         subgraph = subgraphs[s]
-        if len(subgraph) > MAX_NEIGHBORS:
+        if len(subgraph) > (MAX_NEIGHBORS + 1):
             k = (len(subgraph) // MAX_NEIGHBORS) + 1
             cuts, parts = metis.part_graph(subgraph, k)
             for i in range(k):

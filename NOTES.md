@@ -134,3 +134,124 @@ gotchas? lots of people interacting, not taking time to sync, etc.
 
 have a docent that limits the number of people?
 
+
+//
+
+ok, today is a different day, I guess. 60 is great, solid.
+
+now I have 80 that are behaving more or less synced.
+but my checkins are bouncing like crazy. barely hitting 70.
+
+restarted server. I'm getting checkins in the 70s now... 
+dropping to high 60s
+
+ok
+
+
+
+so use 80. you should expect checkins in the 60s and 70s. 
+
+I unplugged a box. not seeing timeouts, which is questionable.
+
+hitting all the boxes.
+
+clearly stronger sync. universal sync. seeing low 60s on the checkin.
+ok, so this is actually totally consistent with my previous notes.
+
+70 is the way to go. more starts to be unstable. 
+
+/
+
+switching to new router and restarting server
+some problems getting it to stick
+
+previously over 50 cannot simultaneously connect
+60 connected like instantly here
+
+checkins are a very stable 57
+total sync
+
+turning on another box caused total chaos.
+flow of timeouts
+not stable
+
+so with the black router, it's 60. and that's the number.
+
+
+//
+
+back to mango 1
+
+50 is the max for simultaneous connections, nothing connects when more are on
+stable 48
+adding a box
+total synced with 60, but checkins wavering
+adding a box
+
+ok, something happened and the server dropped everything
+recovered
+
+now total sync with 70-
+66 checkins showing
+
+adding a box
+totally connected and syncing with 80-
+60s/70s checkins showing
+
+
+
+ok. so I'm feeling confident now. this is how it behaves.
+Black is sharper and more stable, but collapses higher than 60.
+Mango is a little less stable, but can handle more. which could totally be a chip thing. so I ordered v2.
+
+
+///////
+
+you'll do 80 with the mango, and expect checkins in the 60s and 70s. maybe v2 gets better.
+remeber not to try and connect more than 50 at a time.
+
+neighbor_range: 40
+max_neighbors: 10
+bump_amount: 0.005
+
+
+///////
+
+thoughts -- total sync maximizes network burst, so there's probably less of an issue with this in the show. but still.
+
+
+
+what am I worried about?
+- the server getting corrupted, or doing weird shit. because that was weird.
+
+
+
+/////
+
+v2
+
+all 50 connected immediately and are stable
+
+added a box
+60 are connected and stable
+
+
+//
+
+good firmware is 2.18
+1B firmware is 2.25 -- unclear if it's the same
+
+
+1B:
+OpenWrt Chaos Calmer 15.05 / LuCI 15.05-109-g7bc4c48 Release (git-15.322.41240-4e44955)
+
+
+////
+
+granoff
+
+trying to do two GL routers simultaneously, but they are conflicting or something -- cant do one on wifi and one tethered
+
+it's because they have the same subnet
+
+changing to 192.168.9.1
